@@ -1,4 +1,4 @@
-## Live Spectrogram App
+## [Live Spectrogram App](https://live-spectrogram-app.vercel.app)
 
 This project is a **real‑time audio spectrogram visualizer** built with React, Vite, TanStack Router, Three.js and Shadcn UI.
 
