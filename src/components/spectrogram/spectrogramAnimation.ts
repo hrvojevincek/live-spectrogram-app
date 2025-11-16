@@ -3,7 +3,7 @@
  * Functions for managing the animation loop and data updates
  */
 
-import * as THREE from 'three'
+import type * as THREE from 'three'
 
 export interface AnimationState {
   analyser: AnalyserNode
@@ -65,11 +65,9 @@ export function updateMeshDisplacement(
     'displacement',
   ) as THREE.BufferAttribute
 
-  if (displacementAttr) {
-    const array = displacementAttr.array as Uint8Array
-    array.set(heights)
-    displacementAttr.needsUpdate = true
-  }
+  const array = displacementAttr.array as Uint8Array
+  array.set(heights)
+  displacementAttr.needsUpdate = true
 }
 
 /**

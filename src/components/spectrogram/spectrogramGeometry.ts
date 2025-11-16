@@ -15,7 +15,7 @@ export interface GeometryParams {
 
 export interface GeometryData {
   geometry: THREE.BufferGeometry
-  vertices: number[]
+  vertices: Array<number>
   heights: Uint8Array
   nVertices: number
 }
@@ -25,7 +25,7 @@ export interface GeometryData {
  * Uses logarithmic scaling for frequency axis (Y) as in blog post
  */
 export function generateVertices(params: GeometryParams): {
-  vertices: number[]
+  vertices: Array<number>
   heights: Uint8Array
   nVertices: number
 } {
@@ -37,7 +37,7 @@ export function generateVertices(params: GeometryParams): {
   const xsegmentSize = xsize / xsegments
 
   const nVertices = (frequencySamples + 1) * (timeSamples + 1)
-  const vertices: number[] = []
+  const vertices: Array<number> = []
   const heights = new Uint8Array(nVertices)
 
   for (let i = 0; i <= xsegments; i++) {
@@ -60,10 +60,10 @@ export function generateVertices(params: GeometryParams): {
 export function generateIndices(
   timeSamples: number,
   frequencySamples: number,
-): number[] {
+): Array<number> {
   const xsegments = timeSamples
   const ysegments = frequencySamples
-  const indices: number[] = []
+  const indices: Array<number> = []
 
   for (let i = 0; i < xsegments; i++) {
     for (let j = 0; j < ysegments; j++) {

@@ -4,14 +4,12 @@
  */
 
 import * as THREE from 'three'
-import {
-  CAMERA_CONFIG,
-  RENDERER_CONFIG,
-  type ColorScheme,
-} from './spectrogramConfig'
-import { VERTEX_SHADER, FRAGMENT_SHADER } from './spectrogramShaders'
+import { CAMERA_CONFIG, RENDERER_CONFIG } from './spectrogramConfig'
+import { FRAGMENT_SHADER, VERTEX_SHADER } from './spectrogramShaders'
 import { getColorSchemeValue } from './spectrogramHelpers'
-import { createGeometry, GeometryData } from './spectrogramGeometry'
+import { createGeometry } from './spectrogramGeometry'
+import type { ColorScheme } from './spectrogramConfig'
+import type { GeometryData } from './spectrogramGeometry'
 
 export interface ThreeSceneState {
   scene: THREE.Scene
@@ -149,7 +147,7 @@ export function cleanupThreeScene(
 ): void {
   if (renderer) {
     renderer.dispose()
-    if (container && renderer.domElement) {
+    if (container) {
       if (container.contains(renderer.domElement)) {
         container.removeChild(renderer.domElement)
       }

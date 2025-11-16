@@ -3,11 +3,8 @@
  * Utility functions for spectrogram calculations and operations
  */
 
-import {
-  ANALYSER_CONFIG,
-  COLOR_SCHEME_VALUES,
-  type ColorScheme,
-} from './spectrogramConfig'
+import { ANALYSER_CONFIG, COLOR_SCHEME_VALUES } from './spectrogramConfig'
+import type { ColorScheme } from './spectrogramConfig'
 
 /**
  * Calculate the nearest power of 2 for FFT size
@@ -50,8 +47,8 @@ export function validateParameters(params: {
   ysize: number
   frequencySamples: number
   timeSamples: number
-}): { valid: boolean; errors: string[] } {
-  const errors: string[] = []
+}): { valid: boolean; errors: Array<string> } {
+  const errors: Array<string> = []
 
   if (params.xsize <= 0) {
     errors.push('xsize must be greater than 0')
@@ -91,5 +88,5 @@ export function calculateLogarithmicY(
  * Convert color scheme string to shader uniform value
  */
 export function getColorSchemeValue(colorScheme: ColorScheme): number {
-  return COLOR_SCHEME_VALUES[colorScheme] ?? COLOR_SCHEME_VALUES.purple
+  return COLOR_SCHEME_VALUES[colorScheme]
 }

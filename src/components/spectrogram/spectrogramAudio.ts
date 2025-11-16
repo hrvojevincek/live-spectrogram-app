@@ -20,9 +20,7 @@ export function createAudioContext(fftSize: number): {
   audioContext: AudioContext
   analyser: AnalyserNode
 } {
-  const AudioContextClass =
-    window.AudioContext || (window as any).webkitAudioContext
-  const audioContext = new AudioContextClass()
+  const audioContext = new AudioContext()
   const analyser = audioContext.createAnalyser()
   analyser.fftSize = fftSize
   analyser.smoothingTimeConstant = ANALYSER_CONFIG.SMOOTHING_TIME_CONSTANT

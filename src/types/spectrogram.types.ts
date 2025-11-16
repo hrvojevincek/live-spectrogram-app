@@ -3,7 +3,7 @@
  * Shared type definitions for spectrogram components
  */
 
-import { type ColorScheme } from '@/components/spectrogram/spectrogramConfig'
+import type { ColorScheme } from '@/components/spectrogram/spectrogramConfig'
 
 /**
  * Props for LiveSpectrogram component
