@@ -3,9 +3,9 @@
  * Functions for managing microphone audio context and stream
  */
 
-import { MIC_CONFIG, MIC_ERROR_MESSAGES } from './micConfig'
 import { ANALYSER_CONFIG } from '../spectrogram/spectrogramConfig'
 import { calculateFFTSize } from '../spectrogram/spectrogramHelpers'
+import { MIC_CONFIG, MIC_ERROR_MESSAGES } from './micConfig'
 
 export interface MicAudioState {
   stream: MediaStream
@@ -27,9 +27,7 @@ export async function requestMicrophoneAccess(): Promise<MicAudioState> {
     audio: { echoCancellation: MIC_CONFIG.echoCancellation },
   })
 
-  const AudioContextClass =
-    window.AudioContext || (window as any).webkitAudioContext
-  const audioContext = new AudioContextClass()
+  const audioContext = new AudioContext()
 
   // Resume audio context if suspended (required after user interaction)
   if (audioContext.state === 'suspended') {

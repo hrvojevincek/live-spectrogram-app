@@ -4,29 +4,29 @@ import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
 import {
   calculateFFTSize,
-  validateParameters,
   getColorSchemeValue,
+  validateParameters,
 } from './spectrogram/spectrogramHelpers'
 import {
-  setupAudioPipeline,
   cleanupAudio,
+  setupAudioPipeline,
 } from './spectrogram/spectrogramAudio'
 import {
-  createThreeScene,
   cleanupThreeScene,
+  createThreeScene,
   updateCameraOnResize,
   updateRendererOnResize,
 } from './spectrogram/spectrogramThree'
 import {
   createMicAudioPipeline,
-  isAudioContextValid,
   ensureAudioContextRunning,
+  isAudioContextValid,
 } from './mic'
 import {
-  updateSpectrogramData,
   updateMeshDisplacement,
+  updateSpectrogramData,
 } from './spectrogram/spectrogramAnimation'
-import { type LiveSpectrogramProps } from '@/types'
+import type { LiveSpectrogramProps } from '@/types'
 
 export function LiveSpectrogram({
   audioElement,
@@ -133,9 +133,11 @@ export function LiveSpectrogram({
   } | null> => {
     // Handle mic input
     if (micStream && micAudioContext) {
-      // Check if context is valid
-      if (!isAudioContextValid(micAudioContext)) {
-        return null
+      // Prefer the provided mic AudioContext, but fall back to a new one if it's closed.
+      let contextToUse: AudioContext = micAudioContext
+
+      if (!isAudioContextValid(contextToUse)) {
+        contextToUse = new AudioContext()
       }
 
       const isSameMicStream = connectedMicStreamRef.current === micStream
@@ -161,19 +163,16 @@ export function LiveSpectrogram({
       }
 
       // Cleanup old audio context if different
-      if (
-        audioContextRef.current &&
-        audioContextRef.current !== micAudioContext
-      ) {
+      if (audioContextRef.current && audioContextRef.current !== contextToUse) {
         cleanupAudio(sourceRef.current, audioContextRef.current)
       }
 
-      // Use the provided mic audio context
-      audioContextRef.current = micAudioContext
+      // Use the chosen mic audio context
+      audioContextRef.current = contextToUse
 
       // Ensure audio context is running
-      const resumed = await ensureAudioContextRunning(micAudioContext)
-      if (!resumed || !isAudioContextValid(micAudioContext)) {
+      const resumed = await ensureAudioContextRunning(contextToUse)
+      if (!resumed || !isAudioContextValid(contextToUse)) {
         return null
       }
 
@@ -181,10 +180,9 @@ export function LiveSpectrogram({
       try {
         const pipeline = createMicAudioPipeline(
           micStream,
-          micAudioContext,
+          contextToUse,
           frequencySamples,
         )
-
         analyserRef.current = pipeline.analyser
         sourceRef.current = pipeline.source
         connectedMicStreamRef.current = micStream
@@ -259,7 +257,9 @@ export function LiveSpectrogram({
    */
   const initializeThree = () => {
     const container = containerRef.current
-    if (!container) return
+    if (!container) {
+      return
+    }
 
     // Validate parameters
     const validation = validateParameters({
@@ -308,7 +308,9 @@ export function LiveSpectrogram({
 
     // Setup resize handler
     const handleResize = () => {
-      if (!container || !cameraRef.current || !rendererRef.current) return
+      if (!cameraRef.current || !rendererRef.current) {
+        return
+      }
       updateCameraOnResize(cameraRef.current, container)
       updateRendererOnResize(rendererRef.current, container)
     }
