@@ -1,21 +1,13 @@
 'use client'
-import { useState, useRef, useEffect } from 'react'
-import { Button } from '@/components/ui/button'
-import {
-  Radio,
-  AlertCircle,
-  ChevronLeft,
-  ChevronRight,
-  Mic,
-  MicOff,
-} from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
 import { LiveSpectrogram } from './LiveSpectrogram'
 import {
+  getMicrophoneErrorMessage,
   requestMicrophoneAccess,
   stopMicrophone,
-  getMicrophoneErrorMessage,
 } from './mic'
-import { type ColorScheme } from './spectrogram/spectrogramConfig'
+import { SpectrogramControls } from './SpectrogramControls'
+import type { ColorScheme } from './spectrogram/spectrogramConfig'
 
 const RADIO_STREAM_URL = 'https://ec6.yesstreaming.net:1505/stream'
 
@@ -48,7 +40,7 @@ export function RadioPlayer() {
   const FFT_SIZE = getNearestPowerOf2(4 * frequencySamples)
 
   // Color scheme navigation
-  const colorSchemes: ColorScheme[] = [
+  const colorSchemes: Array<ColorScheme> = [
     'purple',
     'green-red',
     'purple-yellow',
@@ -100,20 +92,20 @@ export function RadioPlayer() {
     // Add error event listener
     const handleError = (e: Event) => {
       console.error('Audio error:', e)
-      const error = audio.error
-      if (error) {
+      const mediaError = audio.error
+      if (mediaError) {
         let errorMessage = 'Unknown error'
-        switch (error.code) {
-          case error.MEDIA_ERR_ABORTED:
+        switch (mediaError.code) {
+          case mediaError.MEDIA_ERR_ABORTED:
             errorMessage = 'Playback aborted'
             break
-          case error.MEDIA_ERR_NETWORK:
+          case mediaError.MEDIA_ERR_NETWORK:
             errorMessage = 'Network error - check stream URL'
             break
-          case error.MEDIA_ERR_DECODE:
+          case mediaError.MEDIA_ERR_DECODE:
             errorMessage = 'Decode error - invalid stream format'
             break
-          case error.MEDIA_ERR_SRC_NOT_SUPPORTED:
+          case mediaError.MEDIA_ERR_SRC_NOT_SUPPORTED:
             errorMessage =
               'Stream URL not supported - may need different format'
             break
@@ -128,10 +120,8 @@ export function RadioPlayer() {
     // Cleanup on unmount
     return () => {
       audio.removeEventListener('error', handleError)
-      if (audio) {
-        audio.pause()
-        audio.src = ''
-      }
+      audio.pause()
+      audio.src = ''
       setAudioElement(null)
     }
   }, [isRadioActive])
@@ -163,21 +153,18 @@ export function RadioPlayer() {
         radioAudioRef.current.src = RADIO_STREAM_URL
         radioAudioRef.current.load()
 
-        const playPromise = radioAudioRef.current.play()
-
-        if (playPromise !== undefined) {
-          playPromise
-            .then(() => {
-              setError(null)
-            })
-            .catch((error) => {
-              console.error('Error playing radio stream:', error)
-              setError(
-                `Failed to play stream: ${error.message}. Please check your internet connection or try again.`,
-              )
-              setIsRadioActive(false)
-            })
-        }
+        radioAudioRef.current
+          .play()
+          .then(() => {
+            setError(null)
+          })
+          .catch((playError) => {
+            console.error('Error playing radio stream:', playError)
+            setError(
+              `Failed to play stream: ${playError instanceof Error ? playError.message : 'Unknown error'}. Please check your internet connection or try again.`,
+            )
+            setIsRadioActive(false)
+          })
       }, 100)
     }
   }
@@ -203,223 +190,42 @@ export function RadioPlayer() {
         micStreamRef.current = stream
         micAudioContextRef.current = audioContext
         setIsMicActive(true)
-      } catch (error: any) {
-        console.error('Error accessing microphone:', error)
-        setError(getMicrophoneErrorMessage(error))
+      } catch (micError: any) {
+        console.error('Error accessing microphone:', micError)
+        setError(getMicrophoneErrorMessage(micError))
         setIsMicActive(false)
       }
     }
   }
 
+  const colorSchemeLabel = colorSchemeNames[colorScheme]
+
   return (
     <div className="flex flex-row gap-4 h-full min-h-0">
-      {/* Controls Sidebar - 20% */}
-      <div className="w-[20%] flex-shrink-0 bg-slate-800/50 border border-slate-700 rounded-lg p-4 overflow-y-auto max-h-full">
-        <h3 className="text-white font-semibold mb-4">Spectrogram Controls</h3>
-
-        {/* Start/Stop Button */}
-        <div className="mb-4">
-          <Button
-            onClick={handleStartRadio}
-            variant={isRadioActive ? 'default' : 'outline'}
-            className="w-full"
-          >
-            <Radio className="mr-2 h-4 w-4" />
-            {isRadioActive ? 'Stop Radio' : 'Start Radio'}
-          </Button>
-          {isRadioActive && (
-            <p className="text-white text-sm text-center mt-2">
-              24/7 Seawaves Radio
-            </p>
-          )}
-        </div>
-
-        {/* Turn on Mic Button */}
-        <div className="mb-4">
-          <Button
-            onClick={handleTurnOnMic}
-            variant={isMicActive ? 'default' : 'outline'}
-            className="w-full"
-          >
-            {isMicActive ? (
-              <>
-                <MicOff className="mr-2 h-4 w-4" />
-                Turn off Mic
-              </>
-            ) : (
-              <>
-                <Mic className="mr-2 h-4 w-4" />
-                Turn on Mic
-              </>
-            )}
-          </Button>
-        </div>
-
-        {error && (
-          <div className="bg-red-900/50 border border-red-700 rounded-lg p-3 mb-4 flex items-center gap-2">
-            <AlertCircle className="h-4 w-4 text-red-400 flex-shrink-0" />
-            <p className="text-red-300 text-xs">{error}</p>
-          </div>
-        )}
-
-        {/* Hidden audio element for radio stream (needed for audio processing) */}
-        {isRadioActive && (
-          <audio
-            ref={radioAudioRef}
-            crossOrigin="anonymous"
-            preload="none"
-            style={{ display: 'none' }}
-          />
-        )}
-
-        {/* Controls */}
-        <div className="flex flex-col gap-4">
-          {/* Zoom Control */}
-          <div>
-            <label className="block text-sm text-gray-300 mb-1">
-              Zoom: {zoom}
-            </label>
-            <input
-              type="range"
-              min="20"
-              max="150"
-              value={zoom}
-              onChange={(e) => setZoom(Number(e.target.value))}
-              className="w-full"
-            />
-          </div>
-
-          {/* Max Height Control */}
-          <div>
-            <label className="block text-sm text-gray-300 mb-1">
-              Max Height: {maxHeight.toFixed(1)}
-            </label>
-            <input
-              type="range"
-              min="1"
-              max="30"
-              step="0.5"
-              value={maxHeight}
-              onChange={(e) => setMaxHeight(Number(e.target.value))}
-              className="w-full"
-            />
-          </div>
-
-          {/* X Size Control */}
-          <div
-            className={isRadioActive ? 'opacity-50 pointer-events-none' : ''}
-          >
-            <label className="block text-sm text-gray-300 mb-1">
-              X Size (Time): {xsize}
-            </label>
-            <input
-              type="range"
-              min="20"
-              max="100"
-              value={xsize}
-              onChange={(e) => setXsize(Number(e.target.value))}
-              className="w-full"
-              disabled={isRadioActive}
-            />
-          </div>
-
-          {/* Y Size Control */}
-          <div
-            className={isRadioActive ? 'opacity-50 pointer-events-none' : ''}
-          >
-            <label className="block text-sm text-gray-300 mb-1">
-              Y Size (Frequency): {ysize}
-            </label>
-            <input
-              type="range"
-              min="10"
-              max="50"
-              value={ysize}
-              onChange={(e) => setYsize(Number(e.target.value))}
-              className="w-full"
-              disabled={isRadioActive}
-            />
-          </div>
-
-          {/* Frequency Samples Control */}
-          <div
-            className={isRadioActive ? 'opacity-50 pointer-events-none' : ''}
-          >
-            <label className="block text-sm text-gray-300 mb-1">
-              Frequency Resolution: {frequencySamples}
-            </label>
-            <input
-              type="range"
-              min="64"
-              max="512"
-              step="64"
-              value={frequencySamples}
-              onChange={(e) => setFrequencySamples(Number(e.target.value))}
-              className="w-full"
-              disabled={isRadioActive}
-            />
-          </div>
-
-          {/* Time Samples Control */}
-          <div
-            className={isRadioActive ? 'opacity-50 pointer-events-none' : ''}
-          >
-            <label className="block text-sm text-gray-300 mb-1">
-              Time Resolution: {timeSamples}
-            </label>
-            <input
-              type="range"
-              min="200"
-              max="1200"
-              step="100"
-              value={timeSamples}
-              onChange={(e) => setTimeSamples(Number(e.target.value))}
-              className="w-full"
-              disabled={isRadioActive}
-            />
-          </div>
-
-          {/* Color Scheme Control */}
-          <div>
-            <label className="block text-sm text-gray-300 mb-1">
-              Color Scheme
-            </label>
-            <div className="flex items-center gap-2">
-              <Button
-                onClick={handleColorSchemePrev}
-                variant="outline"
-                size="sm"
-                className="flex-shrink-0 p-1 h-8 w-8"
-                aria-label="Previous color scheme"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <div className="flex-1 bg-slate-700 text-white rounded px-2 py-1 text-sm text-center min-h-[32px] flex items-center justify-center">
-                {colorSchemeNames[colorScheme]}
-              </div>
-              <Button
-                onClick={handleColorSchemeNext}
-                variant="outline"
-                size="sm"
-                className="flex-shrink-0 p-1 h-8 w-8"
-                aria-label="Next color scheme"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-
-          {/* FFT Size Display (read-only) */}
-          <div>
-            <label className="block text-sm text-gray-300 mb-1">
-              FFT Size: {FFT_SIZE} (auto)
-            </label>
-            <div className="text-xs text-gray-400">
-              Calculated as 4 × Frequency Resolution
-            </div>
-          </div>
-        </div>
-      </div>
+      <SpectrogramControls
+        isRadioActive={isRadioActive}
+        isMicActive={isMicActive}
+        error={error}
+        zoom={zoom}
+        maxHeight={maxHeight}
+        xsize={xsize}
+        ysize={ysize}
+        frequencySamples={frequencySamples}
+        timeSamples={timeSamples}
+        fftSize={FFT_SIZE}
+        colorSchemeLabel={colorSchemeLabel}
+        radioAudioRef={radioAudioRef}
+        onStartRadio={handleStartRadio}
+        onToggleMic={handleTurnOnMic}
+        onZoomChange={setZoom}
+        onMaxHeightChange={setMaxHeight}
+        onXSizeChange={setXsize}
+        onYSizeChange={setYsize}
+        onFrequencySamplesChange={setFrequencySamples}
+        onTimeSamplesChange={setTimeSamples}
+        onColorSchemePrev={handleColorSchemePrev}
+        onColorSchemeNext={handleColorSchemeNext}
+      />
 
       {/* Spectrogram Area - 80% */}
       <div className="flex-1 min-w-0 flex flex-col gap-4 min-h-0">
